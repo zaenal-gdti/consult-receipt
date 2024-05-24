@@ -1,0 +1,1 @@
+jupyter lab --ip='*' --port=7654 --no-browser
