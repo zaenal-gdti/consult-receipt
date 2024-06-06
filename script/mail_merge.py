@@ -48,27 +48,34 @@ class MailMerge():
         ## complaint & diagnosis
         doc.paragraphs[2].text = data['chief_complaints']
         doc.paragraphs[2].runs[0].font.size= Pt(8)
-        doc.paragraphs[4].text = str(data['diagnosis']) if str(data['diagnosis']) != '' else '' + (', ' + str(data['suggestion'])) if str(data['suggestion']) != '' else '' 
+        doc.paragraphs[4].text = str(data['diagnosis']) if str(data['diagnosis']) != '' else ''
         doc.paragraphs[4].runs[0].font.size= Pt(8)
         
         doc.paragraphs[6].text = data['icdx']
         doc.paragraphs[6].runs[0].font.size= Pt(8)
+
+        doc.paragraphs[8].text = str(data['suggestion']) if str(data['suggestion']) != '' else '' 
+        doc.paragraphs[8].runs[0].font.size= Pt(8)
         
         ## Consultation Detail
         doc.tables[1].cell(1, 1).text = str(data['consult_id']).replace('.0', '')
         doc.tables[1].cell(1, 2).text = str(data['claim_id']).replace('.0', '')
-        doc.tables[1].cell(1, 3).text = data['date'].strftime('%d/%m/%Y') + ' ' + data['time']
+        doc.tables[1].cell(2, 2).text = str(data['claim_id_rx']).replace('.0', '')
+        doc.tables[1].cell(1, 3).text = pd.to_datetime(data['date']).strftime('%d/%m/%Y') + ' ' + data['time']
         doc.tables[1].cell(1, 4).text = 'IDR '+ str(data['consult_fee']).replace('.0', '')
         doc.tables[1].cell(1, 7).text = 'IDR '+ str(data['consult_fee']).replace('.0', '')
         doc.tables[1].cell(2, 1).text = str(data['order_id']).replace('.0', '')
+        doc.tables[1].cell(2, 3).text = '' if str(data['order_created_date']).lower() in ('nat', 'nan', '') else pd.to_datetime(data['order_created_date'], errors='coerce').strftime('%d/%m/%Y') + ' ' + data['order_created_time']
         
         
         doc.tables[1].cell(1, 1).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(1, 2).paragraphs[0].runs[0].font.size= Pt(8)
+        doc.tables[1].cell(2, 2).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(1, 3).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(1, 4).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(1, 7).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(2, 1).paragraphs[0].runs[0].font.size= Pt(8)
+        doc.tables[1].cell(2, 3).paragraphs[0].runs[0].font.size= Pt(8)
         
         for i in range(1,13):
             j = i + 2
@@ -88,12 +95,11 @@ class MailMerge():
                 doc.tables[1].cell(j, 6).paragraphs[0].runs[0].font.size= Pt(8)
                 doc.tables[1].cell(j, 7).paragraphs[0].runs[0].font.size= Pt(8)
         
-        doc.tables[1].cell(16, 4).text = 'IDR 0' if data['excess_delivery_fee'] =='' else 'IDR '+ str(data['excess_delivery_fee']).replace('.0', '')
-        doc.tables[1].cell(16, 7).text = 'IDR 0' if data['excess_delivery_fee'] =='' else 'IDR '+ str(data['excess_delivery_fee']).replace('.0', '')
+        doc.tables[1].cell(16, 4).text = 'IDR 0' if data['deliv_coverage_by_Insurance'] =='' else 'IDR '+ str(data['deliv_coverage_by_Insurance']).replace('.0', '')
+        doc.tables[1].cell(16, 7).text = 'IDR 0' if data['deliv_coverage_by_Insurance'] =='' else 'IDR '+ str(data['deliv_coverage_by_Insurance']).replace('.0', '')
         doc.tables[1].cell(18, 7).text = 'IDR '+ str(data['total']).replace('.0', '')
-        excess =  0 if  data['rx_excess'] == '' else float(data['rx_excess']) + 0 if  data['excess_consult'] == '' else data['excess_consult']
-        doc.tables[1].cell(19, 7).text = 'IDR '+ str(data['total'] - excess).replace('.0', '')
-        doc.tables[1].cell(20, 7).text = 'IDR '+ str(excess).replace('.0', '')
+        doc.tables[1].cell(19, 7).text = 'IDR '+ str(data['total_consult_+_rx']).replace('.0', '')
+        doc.tables[1].cell(20, 7).text = 'IDR '+ str(data['total'] - data['total_consult_+_rx']).replace('.0', '')
         
         doc.tables[1].cell(16, 4).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(16, 7).paragraphs[0].runs[0].font.size= Pt(8)
@@ -172,6 +178,6 @@ class MailMerge():
 
 
 def run_mail_merge(file, label, sheet_name = 'data', file_per_zip = 100, parallel = False):
-    df = pd.read_excel(file, sheet_name = sheet_name)
+    df = pd.read_excel(file)
     MailMerge(df, label, file_per_zip = file_per_zip, parallel = parallel).run()
     

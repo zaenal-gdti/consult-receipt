@@ -48,14 +48,11 @@ class MailMerge():
         ## complaint & diagnosis
         doc.paragraphs[2].text = data['chief_complaints']
         doc.paragraphs[2].runs[0].font.size= Pt(8)
-        doc.paragraphs[4].text = str(data['diagnosis']) if str(data['diagnosis']) != ''
+        doc.paragraphs[4].text = str(data['diagnosis']) if str(data['diagnosis']) != '' else '' + (', ' + str(data['suggestion'])) if str(data['suggestion']) != '' else '' 
         doc.paragraphs[4].runs[0].font.size= Pt(8)
         
         doc.paragraphs[6].text = data['icdx']
         doc.paragraphs[6].runs[0].font.size= Pt(8)
-
-        doc.paragraphs[8].text = str(data['suggestion']) if str(data['suggestion']) != '' else '' 
-        doc.paragraphs[8].runs[0].font.size= Pt(8)
         
         ## Consultation Detail
         doc.tables[1].cell(1, 1).text = str(data['consult_id']).replace('.0', '')
