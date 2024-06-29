@@ -24,22 +24,23 @@ class MailMerge():
         for i in data.keys():
             if str(data.get(i)) == 'nan':
                 data[i] = ''
+            else:
+                data[i] = str(data[i])
                 
         f = open('template.docx', 'rb')
         doc = Document(f)
-        
         ## General Information
         doc.tables[0].cell(0, 1).text = data['doctor_name']
         doc.tables[0].cell(1, 1).text = data['doctor_department']
-        doc.tables[0].cell(2, 1).text = data['doctor_sip']
-        doc.tables[0].cell(3, 1).text = data['doctor_str']
+        doc.tables[0].cell(2, 1).text = str(data['doctor_sip'])
+        doc.tables[0].cell(3, 1).text = str(data['doctor_str'])
         doc.tables[0].cell(0, 3).text = data['name']
         doc.tables[0].cell(1, 3).text = data['gender']
-        doc.tables[0].cell(2, 3).text = data['dob']
+        doc.tables[0].cell(2, 3).text = str(data['dob'])
         doc.tables[0].cell(3, 3).text = str(data['card_no']).replace('.0', '')
         doc.tables[0].cell(4, 3).text = data['payor']
         doc.tables[0].cell(5, 3).text = data['corporate']
-        
+
         for i in range(6):
             if i < 4:
                 doc.tables[0].cell(i, 1).paragraphs[0].runs[0].font.size = Pt(8)
@@ -65,7 +66,7 @@ class MailMerge():
         doc.tables[1].cell(1, 4).text = 'IDR '+ str(data['consult_fee']).replace('.0', '')
         doc.tables[1].cell(1, 7).text = 'IDR '+ str(data['consult_fee']).replace('.0', '')
         doc.tables[1].cell(2, 1).text = str(data['order_id']).replace('.0', '')
-        doc.tables[1].cell(2, 3).text = '' if str(data['order_created_date']).lower() in ('nat', 'nan', '') else pd.to_datetime(data['order_created_date'], errors='coerce').strftime('%d/%m/%Y') + ' ' + data['order_created_time']
+        doc.tables[1].cell(2, 3).text = '' if str(data['order_created_date']).lower() in ('nat', 'nan', '') else pd.to_datetime(data['order_created_date'], errors='coerce').strftime('%d/%m/%Y') + ' ' + str(data['order_created_time'])
         
         
         doc.tables[1].cell(1, 1).paragraphs[0].runs[0].font.size= Pt(8)
@@ -99,7 +100,7 @@ class MailMerge():
         doc.tables[1].cell(16, 7).text = 'IDR 0' if data['deliv_coverage_by_Insurance'] =='' else 'IDR '+ str(data['deliv_coverage_by_Insurance']).replace('.0', '')
         doc.tables[1].cell(18, 7).text = 'IDR '+ str(data['total']).replace('.0', '')
         doc.tables[1].cell(19, 7).text = 'IDR '+ str(data['total_consult_+_rx']).replace('.0', '')
-        doc.tables[1].cell(20, 7).text = 'IDR '+ str(data['total'] - data['total_consult_+_rx']).replace('.0', '')
+        doc.tables[1].cell(20, 7).text = 'IDR '+ str(float(data['total']) - float(data['total_consult_+_rx'])).replace('.0', '')
         
         doc.tables[1].cell(16, 4).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(16, 7).paragraphs[0].runs[0].font.size= Pt(8)
@@ -112,7 +113,7 @@ class MailMerge():
         doc.tables[1].cell(20, 7).paragraphs[0].runs[0].bold = True
         
         name = data['name'].replace('/', ' ')
-        consult_on = data['date'].strftime('%Y%m%d') +'_'+str(data['time']).replace(':', '')
+        consult_on = pd.to_datetime(data['date'], errors = 'coerce').strftime('%Y%m%d') +'_'+str(data['time']).replace(':', '')
         consult_id = str(data['consult_id']).replace('.0', '')
         agg = data['aggregator_name']
         payor = data['payor']
@@ -146,6 +147,9 @@ class MailMerge():
         fls = glob.glob(f'.tmp/{self.label}/*/*/*')
         unique_agg = np.unique([i.split('/')[2] for i in fls])
         unique_pay = np.unique([i.split('/')[3] for i in fls])
+        
+        success = []
+        
         for i in unique_agg:
             for j in unique_pay:
                 ij = [x for x in fls if x.split('/')[2] == i and x.split('/')[3] == j]
@@ -154,9 +158,15 @@ class MailMerge():
                     with ZipFile(f'output/{self.label}/{i}_{j}_{k}.zip','w') as zip: 
                         for file_each in files:
                             zip.write(file_each, file_each.split('/')[-1]) 
+                            success.append([os.path.basename(file_each),f'{i}_{j}_{k}.zip'])
                     k = k + 1
-                    
+
+
+        self.errors.to_excel(f'output/{self.label}/errors.xlsx', index = False)
+        pd.DataFrame(success).to_excel(f'output/{self.label}/success.xlsx', index = False)
+        
         fls2 = glob.glob(f'output/{self.label}/*')
+        
         with ZipFile(f'output/{self.label}.zip','w') as zip:
             for file_each in fls2:
                 zip.write(file_each, file_each.split('/')[-1]) 
@@ -166,18 +176,20 @@ class MailMerge():
         if os.path.exists(f'.tmp/{self.label}'):
             shutil.rmtree(f'.tmp/{self.label}')
         
-        if not self.multicore:
-            for index, row in tqdm(self.dataset.iterrows()):
+        errors = []
+        for index, row in tqdm(self.dataset.iterrows()):
+            try:
                 self.row_to_pdf(row)
-        else:
-            executor = concurrent.futures.ProcessPoolExecutor(4)
-            futures = [executor.submit(self.row_to_pdf, item) for item in self.dataset.to_dict(orient='records')]
-            concurrent.futures.wait(futures)
-        
+            except Exception as e:
+                errors.append(row)
+                print(e)
+
+        self.errors = pd.DataFrame(errors)
+
         self.chunk_and_zip()
 
 
-def run_mail_merge(file, label, sheet_name = 'data', file_per_zip = 100, parallel = False):
+def run_mail_merge(file, label, sheet_name = 'data', file_per_zip = 100):
     df = pd.read_excel(file)
-    MailMerge(df, label, file_per_zip = file_per_zip, parallel = parallel).run()
+    MailMerge(df, label, file_per_zip = file_per_zip).run()
     
