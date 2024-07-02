@@ -112,17 +112,16 @@ class MailMerge():
         doc.tables[1].cell(19, 7).paragraphs[0].runs[0].bold = True
         doc.tables[1].cell(20, 7).paragraphs[0].runs[0].bold = True
         
-        name = data['name'].replace('/', ' ')
-        consult_on = pd.to_datetime(data['date'], errors = 'coerce').strftime('%Y%m%d') +'_'+str(data['time']).replace(':', '')
+        name = data['name'].replace('/', ' ').title()
+        consult_on = pd.to_datetime(data['date'], errors = 'coerce').strftime('%Y%m%d') #+'_'+str(data['time']).replace(':', '')
         consult_id = str(data['consult_id']).replace('.0', '')
         agg = data['aggregator_name']
         payor = data['payor']
-        
+
         if not os.path.exists(f'.tmp/{self.label}/{agg}/{payor}'):
             os.makedirs(f'.tmp/{self.label}/{agg}/{payor}')
         
-        
-        tmp_name = f'.tmp/{self.label}/{agg}/{payor}/{consult_on}_Consultation_Receipt_{name}_{consult_id}.docx'
+        tmp_name = f'.tmp/{self.label}/{agg}/{payor}/{consult_on}_{name}_Consultation_Receipt_{consult_id}.docx'
         doc.save(tmp_name)
         f.close()
         
@@ -132,7 +131,7 @@ class MailMerge():
                         stderr=subprocess.DEVNULL
                     )
         os.remove(tmp_name)
-        
+                
         
     def chunk_and_zip(self):
         if not os.path.exists(f'output/{self.label}'):
@@ -145,6 +144,7 @@ class MailMerge():
             os.remove(f'output/{self.label}.zip')
             
         fls = glob.glob(f'.tmp/{self.label}/*/*/*')
+        fls = sorted(fls)
         unique_agg = np.unique([i.split('/')[2] for i in fls])
         unique_pay = np.unique([i.split('/')[3] for i in fls])
         
@@ -155,6 +155,7 @@ class MailMerge():
                 ij = [x for x in fls if x.split('/')[2] == i and x.split('/')[3] == j]
                 k = 1
                 for files in chunks(ij, self.file_per_zip):
+                    files = sorted(files)
                     with ZipFile(f'output/{self.label}/{i}_{j}_{k}.zip','w') as zip: 
                         for file_each in files:
                             zip.write(file_each, file_each.split('/')[-1]) 
@@ -165,6 +166,9 @@ class MailMerge():
         self.errors.to_excel(f'output/{self.label}/errors.xlsx', index = False)
         pd.DataFrame(success).to_excel(f'output/{self.label}/success.xlsx', index = False)
         
+        #self.dataset[['date', 'name', 'card_no', 'gdt_id', 
+        #            'consult_id','icdx','gpsp','claim_id', 'consult_price','prescription_fee', 'total']]
+
         fls2 = glob.glob(f'output/{self.label}/*')
         
         with ZipFile(f'output/{self.label}.zip','w') as zip:
