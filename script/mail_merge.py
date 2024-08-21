@@ -12,6 +12,8 @@ from tqdm import tqdm
 import glob
 from zipfile import ZipFile 
 import concurrent
+pd.options.mode.chained_assignment = None 
+
 
 class MailMerge():
     def __init__(self, dataset ,label, file_per_zip = 100, parallel = False):
@@ -20,6 +22,7 @@ class MailMerge():
         self.file_per_zip = file_per_zip
         self.multicore = parallel
         
+            
     def row_to_pdf(self, data):
         for i in data.keys():
             if str(data.get(i)) == 'nan':
@@ -31,13 +34,14 @@ class MailMerge():
         doc = Document(f)
 
         rep_zero = ['card_no', 'consult_id', 'claim_id','claim_id_rx','consult_fee', 'order_id' ,
-                   'deliv_coverage_by_insurance', 'total_consult_+_rx', 'total']
+                   'deliv_coverage_by_insurance', 'total_consult_+_rx',
+                    'total', 'rx_excess', 'excess_consult', 'excess', 'amag_discount']
 
         for i in rep_zero:
             data[i] = data[i].replace('.0', '')
         
 
-        data['datetime'] = pd.to_datetime(data['date']).strftime('%d/%m/%Y') + ' ' + data['time']
+        data['datetime'] = pd.to_datetime(data['date']).strftime('%d/%m/%Y') 
         
         ## General Information
         doc.tables[0].cell(0, 1).text = data['doctor_name']
@@ -47,7 +51,7 @@ class MailMerge():
         doc.tables[0].cell(0, 3).text = data['name']
         doc.tables[0].cell(1, 3).text = data['gender']
         doc.tables[0].cell(2, 3).text = str(data['dob'])
-        doc.tables[0].cell(3, 3).text = data['card_no'])
+        doc.tables[0].cell(3, 3).text = data['card_no']
         doc.tables[0].cell(4, 3).text = data['payor']
         doc.tables[0].cell(5, 3).text = data['corporate']
 
@@ -87,16 +91,15 @@ class MailMerge():
         doc.tables[1].cell(1, 7).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(2, 1).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(2, 3).paragraphs[0].runs[0].font.size= Pt(8)
-        
         for i in range(1,13):
             j = i + 2
             if str(data[f'obat_{i}']) != '':
                 doc.tables[1].cell(j, 0).text = data[f'obat_{i}']
                 doc.tables[1].cell(j, 0).paragraphs[0].alignment = 2
-                doc.tables[1].cell(j, 4).text = 'IDR '+ str(data[f'total_{i}'])
-                doc.tables[1].cell(j, 5).text = str(data[f'jumlah_{i}'])
+                doc.tables[1].cell(j, 4).text = 'IDR '+ str(data[f'total_{i}']).replace('.0', '')
+                doc.tables[1].cell(j, 5).text = str(data[f'jumlah_{i}']).replace('.0', '')
                 doc.tables[1].cell(j, 6).text = data[f'unit_obat_{i}']
-                doc.tables[1].cell(j, 7).text = 'IDR '+ str(data[f'total_{i}'])
+                doc.tables[1].cell(j, 7).text = 'IDR '+ str(data[f'total_{i}']).replace('.0', '')
         
                 doc.tables[1].cell(j, 6).paragraphs[0].runs[0].italic = True
                 
@@ -110,8 +113,7 @@ class MailMerge():
         doc.tables[1].cell(16, 7).text = 'IDR 0' if data['deliv_coverage_by_insurance'] =='' else 'IDR '+ str(data['deliv_coverage_by_insurance'])
         doc.tables[1].cell(18, 7).text = 'IDR '+ str(data['total'])
         doc.tables[1].cell(19, 7).text = 'IDR '+ str(data['total_consult_+_rx'])
-        doc.tables[1].cell(20, 7).text = 'IDR '+ str(float(data['total']) - float(data['total_consult_+_rx'])).replace('.0', '')
-        
+        doc.tables[1].cell(20, 7).text = 'IDR '+ str(float(data['total']) - float(data['total_consult_+_rx'])).replace('.0','')
         doc.tables[1].cell(16, 4).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(16, 7).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(18, 7).paragraphs[0].runs[0].font.size= Pt(8)
@@ -121,7 +123,6 @@ class MailMerge():
         doc.tables[1].cell(18, 7).paragraphs[0].runs[0].bold = True
         doc.tables[1].cell(19, 7).paragraphs[0].runs[0].bold = True
         doc.tables[1].cell(20, 7).paragraphs[0].runs[0].bold = True
-        
         name = data['name'].replace('/', ' ').title()
         consult_on = pd.to_datetime(data['date'], errors = 'coerce').strftime('%Y%m%d') #+'_'+str(data['time']).replace(':', '')
         consult_id = str(data['consult_id']).replace('.0', '')
@@ -140,31 +141,104 @@ class MailMerge():
                        ,stdout=subprocess.DEVNULL,
                         stderr=subprocess.DEVNULL
                     )
+        
         os.remove(tmp_name)
 
 
-        sel_dt = ['date', 'name', 'card_no', 'gdt_id', 'consult_id'
-        ,'icdx', 'gpsp', 'claim_id', 'consult_fee', 'prescription_fee', 'total_consult_+_rx',
-        'total', 'payor', 'corporate', 'list_invoice', 'amag_discount', 'delivery_fee', 'excess']
+        data['claim_id_all'] = data['claim_id'] +' & '+ data['claim_id_rx']
+        
+        sel_dt = ['date','time', 'name', 'card_no', 'gdt_id', 'consult_id','order_id', 'order_id_2'
+        ,'icdx', 'gpsp', 'claim_id_all', 'consult_fee', 'prescription_fee', 'total_consult_+_rx','excess',
+        'total', 'payor', 'corporate','doctor_name','doctor_department','diagnosis','aggregator_name','excess',
+                  'amag_discount', 'deliv_coverage_by_insurance', 'rx_excess', 'excess_consult', 'policy_id', 'member_id']
 
         
         recap = {x: data[x] for x in sel_dt}
 
         return recap
 
-    def create_recap(self, recap):
+    def create_recap(self, recap, df_success_file):
+
+        df_success_file_mrg =recap.merge(df_success_file, how = 'inner', on = 'consult_id')
+        
+        to_int = ['consult_fee', 'deliv_coverage_by_insurance', 'total_consult_+_rx',
+                    'total', 'rx_excess', 'excess_consult', 'excess', 'amag_discount', 'prescription_fee']
+        for i in to_int:
+            df_success_file_mrg[i] = pd.to_numeric(df_success_file_mrg[i]).astype('Int64')
+        
         map_recap = {
-            'date': 'Tanggal'
+            'date': 'Tanggal', 'name': 'Nama Peserta', 'card_no': 'Nomor Kartu', 
+            'gdt_id' : 'User ID', 'consult_id':'Consult ID', 'icdx': 'ICD', 'gpsp':'GP/SP',
+            'claim_id_all': 'Klaim ID', 'consult_fee': 'Biaya Konsul', 'prescription_fee': 'Biaya Obat',
+            'excess': 'Excess' ,'total':'Total Raw', 'total_consult_+_rx':'Total Net' , 
+            'amag_discount':'Amag Discount','payor':'Payor', 'corporate': 'Nama Perusahaan',
+            'order_id': 'Order ID 1','order_id_2': 'Order ID 2','doctor_name':'Nama Dokter',
+            'doctor_department': 'Departemen Dokter', 'time':'Time','diagnosis':'Diagnosa', 
+            'aggregator_name':'Aggregator', 'policy_id':'Polis ID', 'member_id':'Member ID', 
+            'rx_excess':'Rx Excess','excess_consult': 'Excess Consult',
+            'zip_file': 'List Invoice', 'pdf_file': 'PDF file',
+            'deliv_coverage_by_insurance': 'Biaya Pengantaran', 
         }
 
+        df_success_file_mrg['cat_recap'] = np.where((df_success_file_mrg['aggregator_name'] == 'Admedika') &
+                                                (df_success_file_mrg['payor'] == 'GI'), 'admedika_gi',
+                                        np.where((df_success_file_mrg['aggregator_name'] == 'Admedika') &
+                                                (df_success_file_mrg['payor'] == 'AMAG'), 'admedika_amag',
+                                        np.where(df_success_file_mrg['aggregator_name'] == 'Meditap', 'meditap',
+                                                 'general' 
+        )))
         
-    def chunk_and_zip(self):
-        if not os.path.exists(f'output/{self.label}'):
-            os.makedirs(f'output/{self.label}')
-        else:
-            shutil.rmtree(f'output/{self.label}')
-            raise Exception("Error: Anda sedang menjalankan mail merge dengan label yang sama, silahkan ganti salah satu label")
-    
+        df_success_file_mrg = df_success_file_mrg.rename(columns = map_recap)
+        #print(df_success_file.head())
+        df_success_file_mrg = df_success_file_mrg.sort_values(['Tanggal', 'Nama Peserta'])
+
+
+        col_maps = {
+            'general' : ['Tanggal', 'Nama Peserta', 'Nomor Kartu', 'User ID', 'Consult ID', 'ICD', 'GP/SP', 
+                            'Klaim ID', 'Biaya Konsul', 'Biaya Obat', 'Total', 'List Invoice', 'Payor', 
+                         'Nama Perusahaan', 'Order ID 1', 'Order ID 2', 'Nama Dokter', 'Departemen Dokter', 
+                         'Time', 'Diagnosa', 'Aggregator', 'Polis ID', 'Member ID', 'Excess Consult', 'Rx Excess'],
+            'admedika_gi' : ['Tanggal', 'Nama Peserta', 'Nomor Kartu', 'User ID', 'Consult ID', 'ICD', 'GP/SP', 
+                            'Klaim ID', 'Biaya Konsul', 'Biaya Obat', 'Total', 
+                               'Biaya Pengantaran', 'List Invoice', 'Payor', 
+                         'Nama Perusahaan', 'Order ID 1', 'Order ID 2', 'Nama Dokter', 'Departemen Dokter', 
+                         'Time', 'Diagnosa', 'Aggregator', 'Polis ID', 'Member ID', 'Excess Consult', 
+                         'Rx Excess'],            
+            'admedika_amag' : ['Tanggal', 'Nama Peserta', 'Nomor Kartu', 'User ID', 'Consult ID', 'ICD', 'GP/SP', 
+                            'Klaim ID', 'Biaya Konsul', 'Biaya Obat', 'Total','Amag Discount', 'List Invoice', 'Payor', 
+                         'Nama Perusahaan', 'Order ID 1', 'Order ID 2', 'Nama Dokter', 'Departemen Dokter', 
+                         'Time', 'Diagnosa', 'Aggregator', 'Polis ID', 'Member ID', 'Excess Consult', 
+                         'Rx Excess'], 
+            'meditap': ['Tanggal', 'Nama Peserta', 'Nomor Kartu', 'User ID', 
+                        'Consult ID', 'ICD', 'GP/SP', 'Klaim ID', 'Biaya Konsul', 
+                        'Biaya Obat', 'Total', 'Excess' ,  'List Invoice', 'Payor', 
+                         'Nama Perusahaan', 'Order ID 1', 'Order ID 2', 'Nama Dokter', 'Departemen Dokter', 
+                         'Time', 'Diagnosa', 'Aggregator', 'Polis ID', 'Member ID', 'Excess Consult', 'Rx Excess']
+            
+            }
+        
+        for i in ['general', 'admedika_gi', 'admedika_amag', 'meditap']:
+            df_success_agg = df_success_file_mrg[df_success_file_mrg['cat_recap'] == i]
+            
+            if i != 'meditap':
+                df_success_agg['Biaya Konsul'] = (pd.to_numeric(df_success_agg['Biaya Konsul'], 
+                                                    errors = 'coerce').fillna(0) -
+                                                   pd.to_numeric(df_success_agg['Excess Consult'],
+                                                                 errors = 'coerce').fillna(0)).astype('Int64')
+                
+                df_success_agg['Biaya Obat'] = (pd.to_numeric(df_success_agg['Biaya Obat'], 
+                                                               errors = 'coerce').fillna(0) - 
+                                                 pd.to_numeric(df_success_agg['Rx Excess'], 
+                                                               errors = 'coerce').fillna(0)).astype('Int64')
+                                                 
+                df_success_agg['Total'] = df_success_agg['Total Net'].astype('Int64')
+            else:
+                df_success_agg['Total'] = df_success_agg['Total Raw'].astype('Int64')
+            
+            df_success_agg[col_maps.get(i)].to_excel(f'output/{self.label}/recap_{i}.xlsx', index = False)
+            
+        
+    def chunk_and_zip(self):   
         if os.path.exists(f'output/{self.label}.zip'):
             os.remove(f'output/{self.label}.zip')
             
@@ -197,9 +271,7 @@ class MailMerge():
                                         'zip_file': [x[1] for x in success_file],
                                        'consult_id': success_file_consult})
 
-        df_success_file = self.success.merge(df_success_file, how = 'inner', on = 'consult_id')
-        df_success_file.to_excel(f'output/{self.label}/success.xlsx', index = False)
-        
+        self.create_recap(self.success, df_success_file)
         #self.dataset[['date', 'name', 'card_no', 'gdt_id', 
         #            'consult_id','icdx','gpsp','claim_id', 'consult_price','prescription_fee', 'total']]
 
@@ -217,8 +289,9 @@ class MailMerge():
         success = []
         errors = []
         for index, row in tqdm(self.dataset.iterrows()):
+            rcp = self.row_to_pdf(row)
             try:
-                rcp = self.row_to_pdf(row)
+                #rcp = self.row_to_pdf(row)
                 success.append(rcp)
             except Exception as e:
                 errors.append(row)
@@ -231,5 +304,11 @@ class MailMerge():
 
 def run_mail_merge(file, label, sheet_name = 'data', file_per_zip = 100):
     df = pd.read_excel(file)
+    if not os.path.exists(f'output/{label}'):
+        os.makedirs(f'output/{label}')
+    else:
+        #shutil.rmtree(f'output/{label}')
+        raise Exception("Error: Anda sedang menjalankan mail merge dengan label yang sama, silahkan ganti salah satu label")
     MailMerge(df, label, file_per_zip = file_per_zip).run()
+    #shutil.rmtree(f'output/{label}')
     
