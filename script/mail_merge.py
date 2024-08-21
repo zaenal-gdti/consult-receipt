@@ -29,6 +29,16 @@ class MailMerge():
                 
         f = open('template.docx', 'rb')
         doc = Document(f)
+
+        rep_zero = ['card_no', 'consult_id', 'claim_id','claim_id_rx','consult_fee', 'order_id' ,
+                   'deliv_coverage_by_insurance', 'total_consult_+_rx', 'total']
+
+        for i in rep_zero:
+            data[i] = data[i].replace('.0', '')
+        
+
+        data['datetime'] = pd.to_datetime(data['date']).strftime('%d/%m/%Y') + ' ' + data['time']
+        
         ## General Information
         doc.tables[0].cell(0, 1).text = data['doctor_name']
         doc.tables[0].cell(1, 1).text = data['doctor_department']
@@ -37,7 +47,7 @@ class MailMerge():
         doc.tables[0].cell(0, 3).text = data['name']
         doc.tables[0].cell(1, 3).text = data['gender']
         doc.tables[0].cell(2, 3).text = str(data['dob'])
-        doc.tables[0].cell(3, 3).text = str(data['card_no']).replace('.0', '')
+        doc.tables[0].cell(3, 3).text = data['card_no'])
         doc.tables[0].cell(4, 3).text = data['payor']
         doc.tables[0].cell(5, 3).text = data['corporate']
 
@@ -59,13 +69,13 @@ class MailMerge():
         doc.paragraphs[8].runs[0].font.size= Pt(8)
         
         ## Consultation Detail
-        doc.tables[1].cell(1, 1).text = str(data['consult_id']).replace('.0', '')
-        doc.tables[1].cell(1, 2).text = str(data['claim_id']).replace('.0', '')
-        doc.tables[1].cell(2, 2).text = str(data['claim_id_rx']).replace('.0', '')
-        doc.tables[1].cell(1, 3).text = pd.to_datetime(data['date']).strftime('%d/%m/%Y') + ' ' + data['time']
-        doc.tables[1].cell(1, 4).text = 'IDR '+ str(data['consult_fee']).replace('.0', '')
-        doc.tables[1].cell(1, 7).text = 'IDR '+ str(data['consult_fee']).replace('.0', '')
-        doc.tables[1].cell(2, 1).text = str(data['order_id']).replace('.0', '')
+        doc.tables[1].cell(1, 1).text = str(data['consult_id'])
+        doc.tables[1].cell(1, 2).text = str(data['claim_id'])
+        doc.tables[1].cell(2, 2).text = str(data['claim_id_rx'])
+        doc.tables[1].cell(1, 3).text = data['datetime']
+        doc.tables[1].cell(1, 4).text = 'IDR '+ str(data['consult_fee'])
+        doc.tables[1].cell(1, 7).text = 'IDR '+ str(data['consult_fee'])
+        doc.tables[1].cell(2, 1).text = str(data['order_id'])
         doc.tables[1].cell(2, 3).text = '' if str(data['order_created_date']).lower() in ('nat', 'nan', '') else pd.to_datetime(data['order_created_date'], errors='coerce').strftime('%d/%m/%Y') + ' ' + str(data['order_created_time'])
         
         
@@ -83,10 +93,10 @@ class MailMerge():
             if str(data[f'obat_{i}']) != '':
                 doc.tables[1].cell(j, 0).text = data[f'obat_{i}']
                 doc.tables[1].cell(j, 0).paragraphs[0].alignment = 2
-                doc.tables[1].cell(j, 4).text = 'IDR '+ str(data[f'total_{i}']).replace('.0', '')
-                doc.tables[1].cell(j, 5).text = str(data[f'jumlah_{i}']).replace('.0', '')
+                doc.tables[1].cell(j, 4).text = 'IDR '+ str(data[f'total_{i}'])
+                doc.tables[1].cell(j, 5).text = str(data[f'jumlah_{i}'])
                 doc.tables[1].cell(j, 6).text = data[f'unit_obat_{i}']
-                doc.tables[1].cell(j, 7).text = 'IDR '+ str(data[f'total_{i}']).replace('.0', '')
+                doc.tables[1].cell(j, 7).text = 'IDR '+ str(data[f'total_{i}'])
         
                 doc.tables[1].cell(j, 6).paragraphs[0].runs[0].italic = True
                 
@@ -96,10 +106,10 @@ class MailMerge():
                 doc.tables[1].cell(j, 6).paragraphs[0].runs[0].font.size= Pt(8)
                 doc.tables[1].cell(j, 7).paragraphs[0].runs[0].font.size= Pt(8)
         
-        doc.tables[1].cell(16, 4).text = 'IDR 0' if data['deliv_coverage_by_Insurance'] =='' else 'IDR '+ str(data['deliv_coverage_by_Insurance']).replace('.0', '')
-        doc.tables[1].cell(16, 7).text = 'IDR 0' if data['deliv_coverage_by_Insurance'] =='' else 'IDR '+ str(data['deliv_coverage_by_Insurance']).replace('.0', '')
-        doc.tables[1].cell(18, 7).text = 'IDR '+ str(data['total']).replace('.0', '')
-        doc.tables[1].cell(19, 7).text = 'IDR '+ str(data['total_consult_+_rx']).replace('.0', '')
+        doc.tables[1].cell(16, 4).text = 'IDR 0' if data['deliv_coverage_by_insurance'] =='' else 'IDR '+ str(data['deliv_coverage_by_insurance'])
+        doc.tables[1].cell(16, 7).text = 'IDR 0' if data['deliv_coverage_by_insurance'] =='' else 'IDR '+ str(data['deliv_coverage_by_insurance'])
+        doc.tables[1].cell(18, 7).text = 'IDR '+ str(data['total'])
+        doc.tables[1].cell(19, 7).text = 'IDR '+ str(data['total_consult_+_rx'])
         doc.tables[1].cell(20, 7).text = 'IDR '+ str(float(data['total']) - float(data['total_consult_+_rx'])).replace('.0', '')
         
         doc.tables[1].cell(16, 4).paragraphs[0].runs[0].font.size= Pt(8)
@@ -131,7 +141,22 @@ class MailMerge():
                         stderr=subprocess.DEVNULL
                     )
         os.remove(tmp_name)
-                
+
+
+        sel_dt = ['date', 'name', 'card_no', 'gdt_id', 'consult_id'
+        ,'icdx', 'gpsp', 'claim_id', 'consult_fee', 'prescription_fee', 'total_consult_+_rx',
+        'total', 'payor', 'corporate', 'list_invoice', 'amag_discount', 'delivery_fee', 'excess']
+
+        
+        recap = {x: data[x] for x in sel_dt}
+
+        return recap
+
+    def create_recap(self, recap):
+        map_recap = {
+            'date': 'Tanggal'
+        }
+
         
     def chunk_and_zip(self):
         if not os.path.exists(f'output/{self.label}'):
@@ -145,10 +170,11 @@ class MailMerge():
             
         fls = glob.glob(f'.tmp/{self.label}/*/*/*')
         fls = sorted(fls)
-        unique_agg = np.unique([i.split('/')[2] for i in fls])
-        unique_pay = np.unique([i.split('/')[3] for i in fls])
         
-        success = []
+        unique_agg = list(dict.fromkeys([i.split('/')[2] for i in fls]))
+        unique_pay = list(dict.fromkeys([i.split('/')[3] for i in fls]))
+        
+        success_file = []
         
         for i in unique_agg:
             for j in unique_pay:
@@ -159,12 +185,20 @@ class MailMerge():
                     with ZipFile(f'output/{self.label}/{i}_{j}_{k}.zip','w') as zip: 
                         for file_each in files:
                             zip.write(file_each, file_each.split('/')[-1]) 
-                            success.append([os.path.basename(file_each),f'{i}_{j}_{k}.zip'])
+                            success_file.append([os.path.basename(file_each),f'{i}_{j}_{k}.zip'])
                     k = k + 1
 
-
+        
+        success_file_consult = [x[0].split('_')[-1].replace('.pdf', '') for x in success_file]
+        
         self.errors.to_excel(f'output/{self.label}/errors.xlsx', index = False)
-        pd.DataFrame(success).to_excel(f'output/{self.label}/success.xlsx', index = False)
+        
+        df_success_file = pd.DataFrame({'pdf_file': [x[0] for x in success_file],
+                                        'zip_file': [x[1] for x in success_file],
+                                       'consult_id': success_file_consult})
+
+        df_success_file = self.success.merge(df_success_file, how = 'inner', on = 'consult_id')
+        df_success_file.to_excel(f'output/{self.label}/success.xlsx', index = False)
         
         #self.dataset[['date', 'name', 'card_no', 'gdt_id', 
         #            'consult_id','icdx','gpsp','claim_id', 'consult_price','prescription_fee', 'total']]
@@ -179,17 +213,19 @@ class MailMerge():
     def run(self):
         if os.path.exists(f'.tmp/{self.label}'):
             shutil.rmtree(f'.tmp/{self.label}')
-        
+
+        success = []
         errors = []
         for index, row in tqdm(self.dataset.iterrows()):
             try:
-                self.row_to_pdf(row)
+                rcp = self.row_to_pdf(row)
+                success.append(rcp)
             except Exception as e:
                 errors.append(row)
                 print(e)
 
         self.errors = pd.DataFrame(errors)
-
+        self.success = pd.DataFrame(success)
         self.chunk_and_zip()
 
 
