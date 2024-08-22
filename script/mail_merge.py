@@ -233,7 +233,7 @@ class MailMerge():
                                                  
                 df_success_agg['Total'] = df_success_agg['Total Net'].astype('Int64')
             else:
-                df_success_agg['Total'] = df_success_agg['Total Raw'].astype('Int64')
+                df_success_agg['Total'] = df_success_agg['Total Net'].astype('Int64')
             
             df_success_agg[col_maps.get(i)].to_excel(f'output/{self.label}/recap_{i}.xlsx', index = False)
             
