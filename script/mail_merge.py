@@ -146,7 +146,7 @@ class MailMerge():
 
 
         data['claim_id_all'] = data['claim_id'] +' & '+ data['claim_id_rx']
-        
+        data['date'] = pd.to_datetime(data['date']).strftime('%Y-%m-%d') 
         sel_dt = ['date','time', 'name', 'card_no', 'gdt_id', 'consult_id','order_id', 'order_id_2'
         ,'icdx', 'gpsp', 'claim_id_all', 'consult_fee', 'prescription_fee', 'total_consult_+_rx','excess',
         'total', 'payor', 'corporate','doctor_name','doctor_department','diagnosis','aggregator_name','excess',
