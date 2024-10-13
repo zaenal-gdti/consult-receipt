@@ -13,7 +13,7 @@ import glob
 from zipfile import ZipFile 
 import concurrent
 pd.options.mode.chained_assignment = None 
-
+import json
 
 class MailMerge():
     def __init__(self, dataset ,label, file_per_zip = 100, parallel = False):
@@ -21,7 +21,12 @@ class MailMerge():
         self.label = label
         self.file_per_zip = file_per_zip
         self.multicore = parallel
-        
+
+    def safe_cast(val, to_type, default=None):
+        try:
+            return to_type(val)
+        except (ValueError, TypeError):
+            return default
             
     def row_to_pdf(self, data):
         for i in data.keys():
@@ -29,7 +34,8 @@ class MailMerge():
                 data[i] = ''
             else:
                 data[i] = str(data[i])
-                
+
+        
         f = open('template.docx', 'rb')
         doc = Document(f)
 
@@ -77,8 +83,10 @@ class MailMerge():
         doc.tables[1].cell(1, 2).text = str(data['claim_id'])
         doc.tables[1].cell(2, 2).text = str(data['claim_id_rx'])
         doc.tables[1].cell(1, 3).text = data['datetime']
-        doc.tables[1].cell(1, 4).text = 'IDR '+ str(data['consult_fee'])
-        doc.tables[1].cell(1, 7).text = 'IDR '+ str(data['consult_fee'])
+        doc.tables[1].cell(1, 4).text = 'IDR '+ f'{float(data["consult_fee"]):,}'.replace('.0', '')
+        doc.tables[1].cell(1, 7).text = 'IDR '+ f'{float(data["consult_fee"]):,}'.replace('.0', '')
+        doc.tables[1].cell(1, 4).paragraphs[0].alignment = 2
+        doc.tables[1].cell(1, 7).paragraphs[0].alignment = 2
         doc.tables[1].cell(2, 1).text = str(data['order_id'])
         doc.tables[1].cell(2, 3).text = '' if str(data['order_created_date']).lower() in ('nat', 'nan', '') else pd.to_datetime(data['order_created_date'], errors='coerce').strftime('%d/%m/%Y') + ' ' + str(data['order_created_time'])
         
@@ -91,15 +99,21 @@ class MailMerge():
         doc.tables[1].cell(1, 7).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(2, 1).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(2, 3).paragraphs[0].runs[0].font.size= Pt(8)
+
+
         for i in range(1,13):
-            j = i + 2
+            j = i + 2 #f'{value:,}' 
             if str(data[f'obat_{i}']) != '':
                 doc.tables[1].cell(j, 0).text = data[f'obat_{i}']
-                doc.tables[1].cell(j, 0).paragraphs[0].alignment = 2
-                doc.tables[1].cell(j, 4).text = 'IDR '+ str(data[f'total_{i}']).replace('.0', '')
+                # doc.tables[1].cell(j, 0).paragraphs[0].alignment = 2
+                harga_i = float(data[f'harga_{i}'])
+                total_i = float(data[f'total_{i}'])
+                doc.tables[1].cell(j, 4).text = 'IDR '+ f'{harga_i:,}'.replace('.0', '')
+                doc.tables[1].cell(j, 4).paragraphs[0].alignment = 2
                 doc.tables[1].cell(j, 5).text = str(data[f'jumlah_{i}']).replace('.0', '')
                 doc.tables[1].cell(j, 6).text = data[f'unit_obat_{i}']
-                doc.tables[1].cell(j, 7).text = 'IDR '+ str(data[f'total_{i}']).replace('.0', '')
+                doc.tables[1].cell(j, 7).text = 'IDR '+ f'{total_i:,}'.replace('.0', '')
+                doc.tables[1].cell(j, 7).paragraphs[0].alignment = 2
         
                 doc.tables[1].cell(j, 6).paragraphs[0].runs[0].italic = True
                 
@@ -108,18 +122,29 @@ class MailMerge():
                 doc.tables[1].cell(j, 5).paragraphs[0].runs[0].font.size= Pt(8)
                 doc.tables[1].cell(j, 6).paragraphs[0].runs[0].font.size= Pt(8)
                 doc.tables[1].cell(j, 7).paragraphs[0].runs[0].font.size= Pt(8)
-        
-        doc.tables[1].cell(16, 4).text = 'IDR 0' if data['deliv_coverage_by_insurance'] =='' else 'IDR '+ str(data['deliv_coverage_by_insurance'])
-        doc.tables[1].cell(16, 7).text = 'IDR 0' if data['deliv_coverage_by_insurance'] =='' else 'IDR '+ str(data['deliv_coverage_by_insurance'])
-        doc.tables[1].cell(18, 7).text = 'IDR '+ str(data['total'])
-        doc.tables[1].cell(19, 7).text = 'IDR '+ str(data['total_consult_+_rx'])
-        doc.tables[1].cell(20, 7).text = 'IDR '+ str(float(data['total']) - float(data['total_consult_+_rx'])).replace('.0','')
+
+
+        deliv =  '0' if data['deliv_coverage_by_insurance'] =='' else f'{float(data["deliv_coverage_by_insurance"]):,}'.replace('.0', '')
+        total_all = f'{float(data["total"]):,}' #str(data['total'])
+        total_ins = f'{float(data["total_consult_+_rx"]):,}' #str(data['total'])
+        oop1 = float(data['total']) - float(data['total_consult_+_rx'])
+        oop =f'{oop1:,}' #str(data['total'])
+
+        doc.tables[1].cell(16, 4).text = 'IDR ' + deliv.replace('.0','')
+        doc.tables[1].cell(16, 7).text = 'IDR ' + deliv.replace('.0','')
+        doc.tables[1].cell(18, 7).text = 'IDR '+ total_all.replace('.0','')
+        doc.tables[1].cell(19, 7).text = 'IDR '+ total_ins.replace('.0','')
+        doc.tables[1].cell(20, 7).text = 'IDR '+ oop.replace('.0','')
         doc.tables[1].cell(16, 4).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(16, 7).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(18, 7).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(19, 7).paragraphs[0].runs[0].font.size= Pt(8)
         doc.tables[1].cell(20, 7).paragraphs[0].runs[0].font.size= Pt(8)
-        
+        doc.tables[1].cell(16, 4).paragraphs[0].alignment = 2
+        doc.tables[1].cell(16, 7).paragraphs[0].alignment = 2
+        doc.tables[1].cell(18, 7).paragraphs[0].alignment = 2
+        doc.tables[1].cell(19, 7).paragraphs[0].alignment = 2
+        doc.tables[1].cell(20, 7).paragraphs[0].alignment = 2
         doc.tables[1].cell(18, 7).paragraphs[0].runs[0].bold = True
         doc.tables[1].cell(19, 7).paragraphs[0].runs[0].bold = True
         doc.tables[1].cell(20, 7).paragraphs[0].runs[0].bold = True
@@ -146,7 +171,7 @@ class MailMerge():
 
 
         data['claim_id_all'] = data['claim_id'] +' & '+ data['claim_id_rx']
-        data['date'] = pd.to_datetime(data['date']).strftime('%Y-%m-%d') 
+        #data['date'] = pd.to_datetime(data['date']).strftime('%Y-%m-%d') 
         sel_dt = ['date','time', 'name', 'card_no', 'gdt_id', 'consult_id','order_id', 'order_id_2'
         ,'icdx', 'gpsp', 'claim_id_all', 'consult_fee', 'prescription_fee', 'total_consult_+_rx','excess',
         'total', 'payor', 'corporate','doctor_name','doctor_department','diagnosis','aggregator_name','excess',
@@ -234,7 +259,8 @@ class MailMerge():
                 df_success_agg['Total'] = df_success_agg['Total Net'].astype('Int64')
             else:
                 df_success_agg['Total'] = df_success_agg['Total Net'].astype('Int64')
-            
+
+            df_success_agg['Tanggal'] = pd.to_datetime(df_success_agg['Tanggal']).dt.date
             df_success_agg[col_maps.get(i)].to_excel(f'output/{self.label}/recap_{i}.xlsx', index = False)
             
         
