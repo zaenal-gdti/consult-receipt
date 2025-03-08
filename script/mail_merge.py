@@ -104,6 +104,7 @@ class MailMerge():
         doc.tables[2].cell(8,0).paragraphs[0].runs[0].font.color.rgb = RGBColor(119, 129, 163)
 
         for i in range(1,nb_med+1):
+            doc.tables[2] = doc.tables[2].add_row()
             j = i + 9 #f'{value:,}' 
             if str(data[f'obat_{i}']) != '':
                 doc.tables[2].cell(j, 0).text = '  ' + data[f'obat_{i}']
@@ -115,7 +116,7 @@ class MailMerge():
                 for i in [(j,0), (j,1),(j,2), (j,3)]:
                     doc.tables[2].cell(i[0], i[1]).paragraphs[0].runs[0].font.size= Pt(8)
                     doc.tables[2].cell(i[0], i[1]).paragraphs[0].runs[0].font.name = 'Open Sans'
-
+            
 
         deliv =  '0' if data['deliv_coverage_by_insurance'] =='' else f'{float(data["deliv_coverage_by_insurance"]):,}'.replace('.0', '')
         total_all = f'{float(data["total"]):,}' #str(data['total'])
