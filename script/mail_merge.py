@@ -14,6 +14,8 @@ from zipfile import ZipFile
 import concurrent
 pd.options.mode.chained_assignment = None 
 import json
+from docx.shared import RGBColor
+
 
 class MailMerge():
     def __init__(self, dataset ,label, file_per_zip = 100, parallel = False):
@@ -34,94 +36,85 @@ class MailMerge():
                 data[i] = ''
             else:
                 data[i] = str(data[i])
+                
+        nb_med = len([x for x in data.index if data[x] != '' and 'obat_' in x and '_obat_' not in x])
 
-        
         f = open('template.docx', 'rb')
         doc = Document(f)
 
         rep_zero = ['card_no', 'consult_id', 'claim_id','claim_id_rx','consult_fee', 'order_id' ,
-                   'deliv_coverage_by_insurance', 'total_consult_+_rx',
+                'deliv_coverage_by_insurance', 'total_consult_+_rx',
                     'total', 'rx_excess', 'excess_consult', 'excess', 'amag_discount']
 
         for i in rep_zero:
             data[i] = data[i].replace('.0', '')
-        
+
 
         data['datetime'] = pd.to_datetime(data['date']).strftime('%d/%m/%Y') 
-        
+
         ## General Information
         doc.tables[0].cell(0, 1).text = data['doctor_name']
         doc.tables[0].cell(1, 1).text = data['doctor_department']
         doc.tables[0].cell(2, 1).text = str(data['doctor_sip'])
         doc.tables[0].cell(3, 1).text = str(data['doctor_str'])
-        doc.tables[0].cell(0, 3).text = data['name']
-        doc.tables[0].cell(1, 3).text = data['gender']
-        doc.tables[0].cell(2, 3).text = str(data['dob'])
-        doc.tables[0].cell(3, 3).text = data['card_no']
-        doc.tables[0].cell(4, 3).text = data['payor']
-        doc.tables[0].cell(5, 3).text = data['corporate']
+        doc.tables[0].cell(0, 4).text = data['name'] + '(' +data['gender'] + ')'
+        doc.tables[0].cell(1, 4).text = str(data['dob'])
+        doc.tables[0].cell(2, 4).text = data['card_no']
+        doc.tables[0].cell(3, 4).text = data['payor']
+        doc.tables[0].cell(4, 4).text = data['corporate']
 
-        for i in range(6):
+
+        for i in range(5):
             if i < 4:
                 doc.tables[0].cell(i, 1).paragraphs[0].runs[0].font.size = Pt(8)
-            doc.tables[0].cell(i, 3).paragraphs[0].runs[0].font.size = Pt(8)
-        
+                doc.tables[0].cell(i, 1).paragraphs[0].runs[0].font.name = 'Open Sans'
+            doc.tables[0].cell(i, 4).paragraphs[0].runs[0].font.size = Pt(8)
+            doc.tables[0].cell(i, 4).paragraphs[0].runs[0].font.name = 'Open Sans'
+
         ## complaint & diagnosis
-        doc.paragraphs[2].text = data['chief_complaints']
-        doc.paragraphs[2].runs[0].font.size= Pt(8)
-        doc.paragraphs[4].text = str(data['diagnosis']) if str(data['diagnosis']) != '' else ''
-        doc.paragraphs[4].runs[0].font.size= Pt(8)
-        
-        doc.paragraphs[6].text = data['icdx']
-        doc.paragraphs[6].runs[0].font.size= Pt(8)
+        doc.tables[1].cell(1, 0).text = data['chief_complaints']
+        doc.tables[1].cell(1, 2).text = str(data['suggestion']) if str(data['suggestion']) != '' else '' 
+        doc.tables[1].cell(4, 0).text = str(data['diagnosis']) if str(data['diagnosis']) != '' else ''
+        doc.tables[1].cell(4, 2).text = data['icdx']
 
-        doc.paragraphs[8].text = str(data['suggestion']) if str(data['suggestion']) != '' else '' 
-        doc.paragraphs[8].runs[0].font.size= Pt(8)
-        
-        ## Consultation Detail
-        doc.tables[1].cell(1, 1).text = str(data['consult_id'])
-        doc.tables[1].cell(1, 2).text = str(data['claim_id'])
-        doc.tables[1].cell(2, 2).text = str(data['claim_id_rx'])
-        doc.tables[1].cell(1, 3).text = data['datetime']
-        doc.tables[1].cell(1, 4).text = 'IDR '+ f'{float(data["consult_fee"]):,}'.replace('.0', '')
-        doc.tables[1].cell(1, 7).text = 'IDR '+ f'{float(data["consult_fee"]):,}'.replace('.0', '')
-        doc.tables[1].cell(1, 4).paragraphs[0].alignment = 2
-        doc.tables[1].cell(1, 7).paragraphs[0].alignment = 2
-        doc.tables[1].cell(2, 1).text = str(data['order_id'])
-        doc.tables[1].cell(2, 3).text = '' if str(data['order_created_date']).lower() in ('nat', 'nan', '') else pd.to_datetime(data['order_created_date'], errors='coerce').strftime('%d/%m/%Y') + ' ' + str(data['order_created_time'])
-        
-        
-        doc.tables[1].cell(1, 1).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(1, 2).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(2, 2).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(1, 3).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(1, 4).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(1, 7).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(2, 1).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(2, 3).paragraphs[0].runs[0].font.size= Pt(8)
+        for i in [(1,0), (1, 2),(4,0), (4,2)]:
+            doc.tables[1].cell(i[0], i[1]).paragraphs[0].runs[0].font.size= Pt(8)
+            doc.tables[1].cell(i[0], i[1]).paragraphs[0].runs[0].font.name = 'Open Sans'
 
 
-        for i in range(1,13):
-            j = i + 2 #f'{value:,}' 
+        doc.tables[2].cell(1,0).text = data['datetime']
+        doc.tables[2].cell(2,0).text = 'Klaim ID: '+ str(data['claim_id'])
+        doc.tables[2].cell(3,0).text = 'Transaksi ID: '+ str(data['consult_id'])
+        doc.tables[2].cell(4,1).text = 'IDR '+ f'{float(data["consult_fee"]):,}'.replace('.0', '') + ' / Sesi'
+        doc.tables[2].cell(4,2).text = str(1)
+        doc.tables[2].cell(4,3).text =  'IDR '+ f'{float(data["consult_fee"]):,}'.replace('.0', '')
+        doc.tables[2].cell(6,0).text = data['order_created_date']
+        doc.tables[2].cell(7,0).text = 'Klaim ID: '+ data['claim_id_rx']
+        doc.tables[2].cell(8,0).text = 'Transaksi ID: '+ data['order_id']
+
+        #doc.tables[2] = doc.tables[2].add_row()
+
+        for i in [(1,0), (2,0),(3,0), (4,1), (4,2), (4,3), (6,0), (7,0), (8,0)]:
+            doc.tables[2].cell(i[0], i[1]).paragraphs[0].runs[0].font.size= Pt(8)
+            doc.tables[2].cell(i[0], i[1]).paragraphs[0].runs[0].font.name = 'Open Sans'
+
+        doc.tables[2].cell(2,0).paragraphs[0].runs[0].font.color.rgb = RGBColor(119, 129, 163)
+        doc.tables[2].cell(3,0).paragraphs[0].runs[0].font.color.rgb = RGBColor(119, 129, 163)
+        doc.tables[2].cell(7,0).paragraphs[0].runs[0].font.color.rgb = RGBColor(119, 129, 163)
+        doc.tables[2].cell(8,0).paragraphs[0].runs[0].font.color.rgb = RGBColor(119, 129, 163)
+
+        for i in range(1,nb_med+1):
+            j = i + 9 #f'{value:,}' 
             if str(data[f'obat_{i}']) != '':
-                doc.tables[1].cell(j, 0).text = data[f'obat_{i}']
-                # doc.tables[1].cell(j, 0).paragraphs[0].alignment = 2
+                doc.tables[2].cell(j, 0).text = '  ' + data[f'obat_{i}']
                 harga_i = float(data[f'harga_{i}'])
                 total_i = float(data[f'total_{i}'])
-                doc.tables[1].cell(j, 4).text = 'IDR '+ f'{harga_i:,}'.replace('.0', '')
-                doc.tables[1].cell(j, 4).paragraphs[0].alignment = 2
-                doc.tables[1].cell(j, 5).text = str(data[f'jumlah_{i}']).replace('.0', '')
-                doc.tables[1].cell(j, 6).text = data[f'unit_obat_{i}']
-                doc.tables[1].cell(j, 7).text = 'IDR '+ f'{total_i:,}'.replace('.0', '')
-                doc.tables[1].cell(j, 7).paragraphs[0].alignment = 2
-        
-                doc.tables[1].cell(j, 6).paragraphs[0].runs[0].italic = True
-                
-                doc.tables[1].cell(j, 0).paragraphs[0].runs[0].font.size= Pt(8)
-                doc.tables[1].cell(j, 4).paragraphs[0].runs[0].font.size= Pt(8)
-                doc.tables[1].cell(j, 5).paragraphs[0].runs[0].font.size= Pt(8)
-                doc.tables[1].cell(j, 6).paragraphs[0].runs[0].font.size= Pt(8)
-                doc.tables[1].cell(j, 7).paragraphs[0].runs[0].font.size= Pt(8)
+                doc.tables[2].cell(j, 1).text = 'IDR '+ f'{harga_i:,}'.replace('.0', '') + ' / ' + data[f'unit_obat_{i}']
+                doc.tables[2].cell(j, 2).text = str(data[f'jumlah_{i}']).replace('.0', '')
+                doc.tables[2].cell(j, 3).text = 'IDR '+ f'{total_i:,}'.replace('.0', '')
+                for i in [(j,0), (j,1),(j,2), (j,3)]:
+                    doc.tables[2].cell(i[0], i[1]).paragraphs[0].runs[0].font.size= Pt(8)
+                    doc.tables[2].cell(i[0], i[1]).paragraphs[0].runs[0].font.name = 'Open Sans'
 
 
         deliv =  '0' if data['deliv_coverage_by_insurance'] =='' else f'{float(data["deliv_coverage_by_insurance"]):,}'.replace('.0', '')
@@ -130,24 +123,20 @@ class MailMerge():
         oop1 = float(data['total']) - float(data['total_consult_+_rx'])
         oop =f'{oop1:,}' #str(data['total'])
 
-        doc.tables[1].cell(16, 4).text = 'IDR ' + deliv.replace('.0','')
-        doc.tables[1].cell(16, 7).text = 'IDR ' + deliv.replace('.0','')
-        doc.tables[1].cell(18, 7).text = 'IDR '+ total_all.replace('.0','')
-        doc.tables[1].cell(19, 7).text = 'IDR '+ total_ins.replace('.0','')
-        doc.tables[1].cell(20, 7).text = 'IDR '+ oop.replace('.0','')
-        doc.tables[1].cell(16, 4).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(16, 7).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(18, 7).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(19, 7).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(20, 7).paragraphs[0].runs[0].font.size= Pt(8)
-        doc.tables[1].cell(16, 4).paragraphs[0].alignment = 2
-        doc.tables[1].cell(16, 7).paragraphs[0].alignment = 2
-        doc.tables[1].cell(18, 7).paragraphs[0].alignment = 2
-        doc.tables[1].cell(19, 7).paragraphs[0].alignment = 2
-        doc.tables[1].cell(20, 7).paragraphs[0].alignment = 2
-        doc.tables[1].cell(18, 7).paragraphs[0].runs[0].bold = True
-        doc.tables[1].cell(19, 7).paragraphs[0].runs[0].bold = True
-        doc.tables[1].cell(20, 7).paragraphs[0].runs[0].bold = True
+        doc.tables[3].cell(0, 3).text = 'IDR ' + deliv.replace('.0','')
+        doc.tables[3].cell(2, 3).text = 'IDR '+ total_all.replace('.0','')
+        doc.tables[3].cell(3, 3).text = 'IDR '+ total_ins.replace('.0','')
+        doc.tables[3].cell(4, 3).text = 'IDR '+ oop.replace('.0','')
+
+
+        for i in [(0, 3), (2, 3), (3, 3), (4, 3)]:
+            doc.tables[3].cell(i[0], i[1]).paragraphs[0].runs[0].font.size= Pt(8)
+            doc.tables[3].cell(i[0], i[1]).paragraphs[0].runs[0].font.name = 'Open Sans'
+            if i != (0, 3):
+                doc.tables[3].cell(i[0], i[1]).paragraphs[0].runs[0].font.color.rgb = RGBColor(76, 121, 240)
+                doc.tables[3].cell(i[0], i[1]).paragraphs[0].runs[0].bold = True
+
+
         name = data['name'].replace('/', ' ').title()
         consult_on = pd.to_datetime(data['date'], errors = 'coerce').strftime('%Y%m%d') #+'_'+str(data['time']).replace(':', '')
         consult_id = str(data['consult_id']).replace('.0', '')
