@@ -3,3 +3,5 @@ numpy
 python-docx
 xlrd
 openpyxl
+streamlit
+streamlit_option_menu
