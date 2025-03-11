@@ -88,10 +88,16 @@ class MailMerge():
         doc.tables[2].cell(4,1).text = 'IDR '+ f'{float(data["consult_fee"]):,}'.replace('.0', '') + ' / Sesi'
         doc.tables[2].cell(4,2).text = str(1)
         doc.tables[2].cell(4,3).text =  'IDR '+ f'{float(data["consult_fee"]):,}'.replace('.0', '')
-        doc.tables[2].cell(6,0).text = data['order_created_date']
-        doc.tables[2].cell(7,0).text = 'Klaim ID: '+ data['claim_id_rx']
-        doc.tables[2].cell(8,0).text = 'Transaksi ID: '+ data['order_id']
 
+        if nb_med >0:
+            doc.tables[2].cell(6,0).text = data['order_created_date']
+            doc.tables[2].cell(7,0).text = 'Klaim ID: '+ data['claim_id_rx']
+            doc.tables[2].cell(8,0).text = 'Transaksi ID: '+ data['order_id']
+        else:
+            doc.tables[2].cell(6,0).text = ''
+            doc.tables[2].cell(7,0).text = ''
+            doc.tables[2].cell(8,0).text = ''
+            doc.tables[2].cell(9,0).text = ''
         #doc.tables[2] = doc.tables[2].add_row()
 
         for i in [(1,0), (2,0),(3,0), (4,1), (4,2), (4,3), (6,0), (7,0), (8,0)]:

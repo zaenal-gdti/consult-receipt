@@ -5,3 +5,4 @@ xlrd
 openpyxl
 streamlit
 streamlit_option_menu
+fastapi[standard]
