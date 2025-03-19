@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, BackgroundTasks, HTTPException
 import pandas as pd
 import time
 import uuid
@@ -14,6 +14,7 @@ app = FastAPI()
 # Dictionary to store job statuses and results
 job_status = {}
 job_results = {}
+job_start_time = {}  # Store job start times
 
 UPLOAD_DIR = "uploads"
 ZIP_DIR = "zipped_files"
@@ -25,13 +26,13 @@ os.makedirs(ZIP_DIR, exist_ok=True)
 def process_and_zip(job_id: str, file_path: str):
     try:
         job_status[job_id] = "🔄 Processing Excel file..."
-        
+        job_start_time[job_id] = datetime.now()  # Store start time
+
         # Simulate processing (read file)
         now = datetime.now().strftime('%Y%m%d_%H%M%S')
         file_path_base = os.path.basename(file_path)
         zip_output = f'{file_path_base}_{now}'
         run_mail_merge(file_path, zip_output)
-        time.sleep(2)  # Simulate delay
         
         job_status[job_id] = "✅ Completed!"
         job_results[job_id] = f'output/{zip_output}.zip'  # Store zip file path for download
@@ -61,7 +62,17 @@ async def upload_excel(file: UploadFile = File(...), background_tasks: Backgroun
 @app.get("/job-status/{job_id}")
 async def check_job_status(job_id: str):
     status = job_status.get(job_id, "Job not found!")
-    return {"job_id": job_id, "status": status}
+    # Calculate elapsed time
+    start_time = job_start_time.get(job_id)
+    elapsed_time = None
+    if start_time:
+        elapsed_time = (datetime.now() - start_time).total_seconds()
+    
+    return {
+        "job_id": job_id,
+        "status": status,
+        "elapsed_time": f"{elapsed_time:.2f} seconds" if elapsed_time else "N/A"
+    }
 
 # API to download processed ZIP file
 @app.get("/download/{job_id}")

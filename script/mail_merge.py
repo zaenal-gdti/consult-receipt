@@ -89,9 +89,9 @@ class MailMerge():
         doc.tables[2].cell(4,2).text = str(1)
         doc.tables[2].cell(4,3).text =  'IDR '+ f'{float(data["consult_fee"]):,}'.replace('.0', '')
 
-        data['order_dt'] = pd.to_datetime(data['order_created_date']).strftime('%d/%m/%Y')  
-
+        
         if nb_med >0:
+            data['order_dt'] = pd.to_datetime(data['order_created_date']).strftime('%d/%m/%Y')  
             doc.tables[2].cell(6,0).text = data['order_dt']
             doc.tables[2].cell(7,0).text = 'Klaim ID: '+ data['claim_id_rx']
             doc.tables[2].cell(8,0).text = 'Transaksi ID: '+ data['order_id']
