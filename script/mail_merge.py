@@ -43,7 +43,7 @@ class MailMerge():
         doc = Document(f)
 
         rep_zero = ['card_no', 'consult_id', 'claim_id','claim_id_rx','consult_fee', 'order_id' ,
-                'deliv_coverage_by_insurance', 'total_consult_+_rx',
+                'deliv_coverage_by_insurance', 'total_consult_rx',
                     'total', 'rx_excess', 'excess_consult', 'excess', 'amag_discount']
 
         for i in rep_zero:
@@ -72,8 +72,8 @@ class MailMerge():
             doc.tables[0].cell(i, 4).paragraphs[0].runs[0].font.name = 'Open Sans'
 
         ## complaint & diagnosis
-        doc.tables[1].cell(1, 0).text = data['chief_complaints']
-        doc.tables[1].cell(1, 2).text = str(data['suggestion']) if str(data['suggestion']) != '' else '' 
+        doc.tables[1].cell(1, 0).text = data['chief_complaints'].replace("\n", " ")
+        doc.tables[1].cell(1, 2).text = str(data['suggestion'].replace("\n", " ")) if str(data['suggestion']) != '' else '' 
         doc.tables[1].cell(4, 0).text = str(data['diagnosis']) if str(data['diagnosis']) != '' else ''
         doc.tables[1].cell(4, 2).text = data['icdx']
 
@@ -128,8 +128,8 @@ class MailMerge():
 
         deliv =  '0' if data['deliv_coverage_by_insurance'] =='' else f'{float(data["deliv_coverage_by_insurance"]):,}'.replace('.0', '')
         total_all = f'{float(data["total"]):,}' #str(data['total'])
-        total_ins = f'{float(data["total_consult_+_rx"]):,}' #str(data['total'])
-        oop1 = float(data['total']) - float(data['total_consult_+_rx'])
+        total_ins = f'{float(data["total_consult_rx"]):,}' #str(data['total'])
+        oop1 = float(data['total']) - float(data['total_consult_rx'])
         oop =f'{oop1:,}' #str(data['total'])
 
         doc.tables[3].cell(0, 3).text = 'IDR ' + deliv.replace('.0','')
@@ -171,7 +171,7 @@ class MailMerge():
         data['claim_id_all'] = data['claim_id'] +' & '+ data['claim_id_rx']
         #data['date'] = pd.to_datetime(data['date']).strftime('%Y-%m-%d') 
         sel_dt = ['date','time', 'name', 'card_no', 'gdt_id', 'consult_id','order_id', 'order_id_2'
-        ,'icdx', 'gpsp', 'claim_id_all', 'consult_fee', 'prescription_fee', 'total_consult_+_rx','excess',
+        ,'icdx', 'gpsp', 'claim_id_all', 'consult_fee', 'prescription_fee', 'total_consult_rx','excess',
         'total', 'payor', 'corporate','doctor_name','doctor_department','diagnosis','aggregator_name','excess',
                   'amag_discount', 'deliv_coverage_by_insurance', 'rx_excess', 'excess_consult', 'policy_id', 'member_id']
 
@@ -184,7 +184,7 @@ class MailMerge():
 
         df_success_file_mrg =recap.merge(df_success_file, how = 'inner', on = 'consult_id')
         
-        to_int = ['consult_fee', 'deliv_coverage_by_insurance', 'total_consult_+_rx',
+        to_int = ['consult_fee', 'deliv_coverage_by_insurance', 'total_consult_rx',
                     'total', 'rx_excess', 'excess_consult', 'excess', 'amag_discount', 'prescription_fee']
         for i in to_int:
             df_success_file_mrg[i] = pd.to_numeric(df_success_file_mrg[i]).astype('Int64')
@@ -193,7 +193,7 @@ class MailMerge():
             'date': 'Tanggal', 'name': 'Nama Peserta', 'card_no': 'Nomor Kartu', 
             'gdt_id' : 'User ID', 'consult_id':'Consult ID', 'icdx': 'ICD', 'gpsp':'GP/SP',
             'claim_id_all': 'Klaim ID', 'consult_fee': 'Biaya Konsul', 'prescription_fee': 'Biaya Obat',
-            'excess': 'Excess' ,'total':'Total Raw', 'total_consult_+_rx':'Total Net' , 
+            'excess': 'Excess' ,'total':'Total Raw', 'total_consult_rx':'Total Net' , 
             'amag_discount':'Amag Discount','payor':'Payor', 'corporate': 'Nama Perusahaan',
             'order_id': 'Order ID 1','order_id_2': 'Order ID 2','doctor_name':'Nama Dokter',
             'doctor_department': 'Departemen Dokter', 'time':'Time','diagnosis':'Diagnosa', 
