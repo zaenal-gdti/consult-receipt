@@ -1,10 +1,9 @@
 import streamlit as st
 
-st.set_page_config(page_title="PDF Utility App", layout="wide", initial_sidebar_state= "collapsed")
+st.set_page_config(page_title="Project Catalyst", layout="wide", initial_sidebar_state= "collapsed")
 
+st.title("Welcome to Project Catalyst!!")
 
-st.title("Welcome to the PDF Utility App")
+st.write("This apps is an internal tool designed to automate simple, independent work processes for operational users and provide ad-hoc data analytics capabilities for the product and data teams")
 
-st.write("Use the sidebar to navigate between different tools.")
-
-
+st.write("Use the sidebar to navigate between different tool")

@@ -7,7 +7,9 @@ import time
 import glob
 import streamlit as st
 from streamlit_option_menu import option_menu
-
+#st.set_page_config(page_title="Excel to PDF Converter", page_icon=":shark:")
+st.set_page_config(page_title="Mail Merge Consult Receipt", layout="wide", initial_sidebar_state= "collapsed")
+ 
 
 def run_mail_merge(df, label, file_per_zip = 100):
     #df = pd.read_excel(file)
@@ -27,8 +29,6 @@ def move_to_archieved(dir = '.tmp'):
     for i in fls:
         shutil.copy(i,'archieved')
 
-st.set_page_config(page_title="Excel to PDF Converter", page_icon=":shark:")
-st.markdown("📄 Excel to PDF Converter")
 uploaded_file = st.file_uploader("Upload an Excel file", type=["xls", "xlsx"])
 if uploaded_file is not None:
     df = pd.read_excel(uploaded_file)

@@ -7,3 +7,5 @@ streamlit
 streamlit_option_menu
 fastapi[standard]
 tqdm
+streamlit-aggrid
+duckdb

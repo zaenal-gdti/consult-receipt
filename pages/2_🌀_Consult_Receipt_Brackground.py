@@ -5,8 +5,8 @@ import time
 # FastAPI Backend URL
 FASTAPI_URL = "http://127.0.0.1:8000"
 
-st.title("📊 Excel Upload & Background Processing")
-st.write("Upload an Excel file to be processed in the background.")
+st.set_page_config(page_title="Mail Merge Consult Receipt Background Processing", layout="wide", initial_sidebar_state= "collapsed")
+st.write("Upload an Excel file to be processed in the background to create consult receipt.")
 
 # File uploader
 uploaded_file = st.file_uploader("Upload Excel File", type=["xlsx"])

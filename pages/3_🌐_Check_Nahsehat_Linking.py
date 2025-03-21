@@ -4,6 +4,9 @@ import time
 from datetime import datetime, timedelta
 import pandas as pd
 
+st.set_page_config(page_title="Check Nahsehat Linking", layout="wide", initial_sidebar_state= "collapsed") # Set layout to wide for better display
+
+
 # Define a global variable to store the token expiration time
 bearer_token = None
 refresh_token = None
