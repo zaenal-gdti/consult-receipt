@@ -4,17 +4,18 @@ import time
 from datetime import datetime, timedelta
 import pandas as pd
 
+
 st.set_page_config(page_title="Check Nahsehat Linking", layout="wide", initial_sidebar_state= "collapsed") # Set layout to wide for better display
 
 
 # Define a global variable to store the token expiration time
 bearer_token = None
 refresh_token = None
-appidbody = "tIphNDvaY8Oc2Uh2vOJ6lvK7uacnE8qO"
-secretkeybody = "0ozNXHDOme86sJed9Pxda2SEEgduU8O4"
+appidbody = st.secretKey['APP_ID']
+secretkeybody =  st.secretKey['SECRET_KEY']
 
 # API endpoints 
-BASE_URL = "https://api.nahsehat.id"
+BASE_URL = st.secretKey['BASE_URL']
 AUTH_URL = "/api/v3/auth/GetToken"  
 API_URL = "/api/v3/AdmMemberAccess"  
 
