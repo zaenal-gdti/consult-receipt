@@ -278,7 +278,11 @@ class MailMerge():
             for j in unique_pay:
                 ij = [x for x in fls if x.split('/')[2] == i and x.split('/')[3] == j]
                 k = 1
-                for files in chunks(ij, self.file_per_zip):
+                if (unique_agg == 'Admedika') and unique_pay not in ['AMAG', 'SIMAS', 'TUGUM']:
+                    fpz = 50
+                else:
+                    fpz = 9999999
+                for files in chunks(ij, fpz):
                     files = sorted(files)
                     with ZipFile(f'output/{self.label}/{i}_{j}_{k}.zip','w') as zip: 
                         for file_each in files:
@@ -326,13 +330,14 @@ class MailMerge():
         self.chunk_and_zip()
 
 
-def run_mail_merge(file, label, sheet_name = 'data', file_per_zip = 100):
+def run_mail_merge(file, label, sheet_name = 'data', file_per_zip = 50):
     df = pd.read_excel(file)
     if not os.path.exists(f'output/{label}'):
         os.makedirs(f'output/{label}')
     else:
         #shutil.rmtree(f'output/{label}')
         raise Exception("Error: Anda sedang menjalankan mail merge dengan label yang sama, silahkan ganti salah satu label")
+    
     MailMerge(df, label, file_per_zip = file_per_zip).run()
     #shutil.rmtree(f'output/{label}')
     

@@ -4,6 +4,9 @@ import time
 from datetime import datetime, timedelta
 import pandas as pd
 
+if "logged_in" not in st.session_state or not st.session_state.logged_in:
+    st.warning("Please log in from the main page.")
+    st.stop()
 
 st.set_page_config(page_title="Check Nahsehat Linking", layout="wide", initial_sidebar_state= "collapsed") # Set layout to wide for better display
 
@@ -11,11 +14,11 @@ st.set_page_config(page_title="Check Nahsehat Linking", layout="wide", initial_s
 # Define a global variable to store the token expiration time
 bearer_token = None
 refresh_token = None
-appidbody = st.secretKey['APP_ID']
-secretkeybody =  st.secretKey['SECRET_KEY']
+appidbody = st.secrets['APP_ID']
+secretkeybody =  st.secrets['SECRET_KEY']
 
 # API endpoints 
-BASE_URL = st.secretKey['BASE_URL']
+BASE_URL = st.secrets['BASE_URL']
 AUTH_URL = "/api/v3/auth/GetToken"  
 API_URL = "/api/v3/AdmMemberAccess"  
 

@@ -2,6 +2,10 @@ import streamlit as st
 import requests
 import time
 
+if "logged_in" not in st.session_state or not st.session_state.logged_in:
+    st.warning("Please log in from the main page.")
+    st.stop()
+    
 # FastAPI Backend URL
 FASTAPI_URL = "http://127.0.0.1:8000"
 

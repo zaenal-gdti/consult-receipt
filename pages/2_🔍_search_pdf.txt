@@ -3,6 +3,10 @@ from streamlit_option_menu import option_menu
 import concurrent.futures
 import os
 
+if "logged_in" not in st.session_state or not st.session_state.logged_in:
+    st.warning("Please log in from the main page.")
+    st.stop()
+    
 def search_pdfs(directory, query):
     matching_files = []
     file_list = [os.path.join(root, file) for root, _, files in os.walk(directory) for file in files if file.lower().endswith(".pdf")]

@@ -74,6 +74,18 @@ async def check_job_status(job_id: str):
         "elapsed_time": f"{elapsed_time:.2f} seconds" if elapsed_time else "N/A"
     }
 
+@app.get("/all-jobs/")
+async def get_all_jobs():
+    all_jobs = [
+        {
+            "job_id": job_id,
+            "status": status,
+            "elapsed_time": f"{(datetime.now() - job_start_time[job_id]).total_seconds():.2f} sec"
+        }
+        for job_id, status in job_status.items()
+    ]
+    return {"jobs": all_jobs}
+
 # API to download processed ZIP file
 @app.get("/download/{job_id}")
 async def download_zip(job_id: str):
